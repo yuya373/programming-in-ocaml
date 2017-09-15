@@ -1,0 +1,714 @@
+* 3 関数型言語の醍醐味：関数
+* 3.1 簡単な関数の定義
+#+BEGIN_SRC ocaml
+
+# let pi = 3.14;;
+val pi : float = 3.14
+
+# let area_of_circle r = r *. r *. pi;;
+val area_of_circle : float -> float = <fun>
+
+# let area_of_circle(r : float) : float = r *. r *. pi;;
+val area_of_circle : float -> float = <fun>
+
+#+END_SRC
+
+* 3.2 条件分岐と真偽値型 bool
+#+BEGIN_SRC ocaml
+
+# let abs x =  if x > 0 then x else - x;;
+val abs : int -> int = <fun>
+# abs 3;;
+- : int = 3
+# abs -3;;
+Characters 0-3:
+  abs -3;;
+  ^^^
+Error: This expression has type int -> int
+       but an expression was expected of type int
+# abs (-3);;
+- : int = 3
+
+# let area_of_circle r = if r > 0.0 then r *. r *. pi else 0.0;;
+val area_of_circle : float -> float = <fun>
+
+# let area_of_circle r = if r > 0.0 then r *. r *. pi else 0;;
+Characters 57-58:
+  let area_of_circle r = if r > 0.0 then r *. r *. pi else 0;;
+                                                           ^
+Error: This expression has type int but an expression was expected of type
+         float
+
+# let area_of_circle r = if r > 0 then r *. r *. pi else 0.0;;
+Characters 37-38:
+  let area_of_circle r = if r > 0 then r *. r *. pi else 0.0;;
+                                       ^
+Error: This expression has type int but an expression was expected of type
+         float
+
+# 3.2 >= 5.1;;
+- : bool = false
+# infinity = infinity;;
+- : bool = true
+# nan = nan;;
+- : bool = false
+# 'a' < 'Z';;
+- : bool = false
+# "This" > "That";;
+- : bool = true
+# true > false;;
+- : bool = true
+# "This" >= 'T';;
+Characters 10-13:
+  "This" >= 'T';;
+            ^^^
+Error: This expression has type char but an expression was expected of type
+         string
+
+# let is_teenager x = 13 <= x && x < 20;;
+val is_teenager : int -> bool = <fun>
+# is_teenager 18;;
+- : bool = true
+# is_teenager 12;;
+- : bool = false
+
+# let is_hitoketa x = 1 <= x < 10;;
+Characters 29-31:
+  let is_hitoketa x = 1 <= x < 10;;
+                               ^^
+Error: This expression has type int but an expression was expected of type
+         bool
+
+#+END_SRC
+
+* 3.3 局所変数束縛とlet式
+
+#+BEGIN_SRC ocaml
+
+# let vol_cone = let base = pi *. 2.0 *. 2.0 in
+                 (base *. 5.0) /. 3.0;;
+  val vol_cone : float = 20.9333333333333336
+
+# let cone_of_heightTwo r =
+    let base = r *. r *. pi in
+    base *. 2.0 /. 3.0;;
+    val cone_of_heightTwo : float -> float = <fun>
+
+# let g x =
+        let power3 x = x * x * x in
+        (power3 x) + (power3 (x + 1));;
+    val g : int -> int = <fun>
+# g 3;;
+- : int = 91
+
+#+END_SRC
+
+* 3.3.1 宣言、静的有効範囲と環境
+
+#+BEGIN_SRC ocaml
+# let one = 1;;
+val one : int = 1
+# let two = one + one;;
+val two : int = 2
+# let one = "One";;
+val one : string = "One"
+# let three = one ^ one ^ one;;
+val three : string = "OneOneOne"
+#+END_SRC
+
+| name  | val         |
+|-------+-------------|
+| one   | 1           |
+| two   | 2           |
+| one   | "One"       |
+| three | "OneOneOne" |
+
+#+BEGIN_SRC ocaml
+# let x = 3 + 2 in x + 7;;
+- : int = 12
+#+END_SRC
+
+3+2の評価中の環境
+| name    |                 val |
+|---------+---------------------|
+| max_int | 4611686018427387903 |
+
+x+7の評価中の環境
+| name    |                 val |
+|---------+---------------------|
+| max_int | 4611686018427387903 |
+| x       |                   5 |
+
+5+7実行後の環境
+| name    |                 val |
+|---------+---------------------|
+| max_int | 4611686018427387903 |
+
+#+BEGIN_SRC ocaml
+# let pi = 3.14;;
+val pi : float = 3.14
+# let area_c r = r *. r *. pi;;
+val area_c : float -> float = <fun>
+# let pi = 1;;
+val pi : int = 1
+# let area = area_c 2.0;;
+val area : float = 12.56
+#+END_SRC
+
+area_c 2.0 呼び出し直前の環境
+| name   | val   |
+|--------+-------|
+| pi     | 3.14  |
+| area_c | <fun> |
+| pi     | 1     |
+
+関数呼び出し直後の環境
+| name |  val |
+|------+------|
+| pi   | 3.14 |
+| r    | 2.0  |
+
+実行終了後の環境
+| name   |   val |
+|--------+-------|
+| pi     |  3.14 |
+| area_c | <fun> |
+| pi     |     1 |
+| area   | 12.56 |
+
+#+BEGIN_SRC ocaml
+# let x = 2 and y = 1;;
+val x : int = 2
+val y : int = 1
+# let x = y and y = x;;
+val x : int = 1
+val y : int = 2
+#+END_SRC
+
+* 3.3.2 練習問題
+* 練習問題 3.1
+#+BEGIN_SRC ocaml
+# let dollar_to_yen x =
+           int_of_float ((x *. 114.32) +. 0.5);;
+  val dollar_to_yen : float -> int = <fun>
+
+# let dollar_to_yen_str dollar =
+  Printf.sprintf "%f dollars are %i yen." dollar (dollar_to_yen dollar);;
+  val dollar_to_yen_str : float -> string = <fun>
+# dollar_to_yen_str 2.0;;
+- : string = "2.000000 dollars are 229 yen."
+
+# let capitalize x =
+  let i = int_of_char x in
+  if (97 <= i && i <= 122) then char_of_int (i - 32)
+  else x;;
+      val capitalize : char -> char = <fun>
+# capitalize 'a';;
+- : char = 'A'
+# capitalize 'A';;
+- : char = 'A'
+# capitalize '1';;
+- : char = '1'
+#+END_SRC
+
+* 練習問題3.4
+#+BEGIN_SRC ocaml
+let x = 1 in
+      let x = 3 in
+      let x = x + 2 in
+      x * x;;
+      Characters 4-5:
+  let x = 1 in
+      ^
+Warning 26: unused variable x.
+- : int = 25
+
+# let x = 2 and y = 3 in
+      (let y = x and x = y in x * y) + y;;
+- : int = 9
+
+
+# let x = 2 in
+      let y = 3 in
+      let y = x in
+      let z = y + 2 in
+      x * y * z;;
+        Characters 23-24:
+        let y = 3 in
+            ^
+Warning 26: unused variable y.
+- : int = 16
+#+END_SRC
+
+* 3.4 構造のためのデータ型：組
+* 3.4.1 組を表す式
+#+BEGIN_SRC ocaml
+# (1.0, 2.0);;
+- : float * float = (1., 2.)
+
+# 1., 2.;;
+- : float * float = (1., 2.)
+#+END_SRC
+
+#+BEGIN_QUOTE
+*は組(tuple・タプル)の型構築子です。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let tup : float * float = (1.0, 2.0);;
+val tup : float * float = (1., 2.)
+
+# let author = ("Atsushi", "Igarashi", 174.0, 61.0);;
+val author : string * string * float * float = ("Atsushi", "Igarashi", 174., 61.)
+
+# let big_tuple = ((3, 'a'), (9.3, "hello", false));;
+val big_tuple : (int * char) * (float * string * bool) = ((3, 'a'), (9.3, "hello", false))
+#+END_SRC
+
+* 3.4.2 要素の抽出とパターンマッチング
+#+BEGIN_SRC ocaml
+# let (firstname, lastname, height, weight) = author;;
+val firstname : string = "Atsushi"
+val lastname : string = "Igarashi"
+val height : float = 174.
+val weight : float = 61.
+
+# let (x, y) = big_tuple;;
+val x : int * char = (3, 'a')
+val y : float * string * bool = (9.3, "hello", false)
+# let (f, s, b) = y;;
+val f : float = 9.3
+val s : string = "hello"
+val b : bool = false
+# let (x, (f, s, b)) = big_tuple;;
+val x : int * char = (3, 'a')
+val f : float = 9.3
+val s : string = "hello"
+val b : bool = false
+# let (first, last) = author;;
+Characters 20-26:
+  let (first, last) = author;;
+                      ^^^^^^
+Error: This expression has type string * string * float * float
+       but an expression was expected of type 'a * 'b
+# let (first, last, _, _) = author;;
+val first : string = "Atsushi"
+val last : string = "Igarashi"
+# let (_, (_, s, _)) = big_tuple;;
+val s : string = "hello"
+# let (_, _, h, h) = author;;
+Characters 14-15:
+  let (_, _, h, h) = author;;
+                ^
+Error: Variable h is bound several times in this matching
+#+END_SRC
+
+* 3.4.3 組を用いた関数
+#+BEGIN_SRC ocaml
+# let average p =
+    let (x, y) = p in
+    (x +. y) /. 2.0;;
+val average : float * float -> float = <fun>
+# average (2.5, 4.8);;
+- : float = 3.65
+#+END_SRC
+
+#+BEGIN_QUOTE
+型構築子*のほうが→より強く結合するので、この型は(float * float) -> floatと同じ意味になります。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let average (x, y) =
+  (x +. y) /. 2.0;;
+val average : float * float -> float = <fun>
+# average (5.2, 4.8);;
+- : float = 5.
+#+END_SRC
+
+#+BEGIN_QUOTE
+組は引数が複数あるような関数を模倣するためによく用いられます。
+実際にはaverageは組を引数としてとる1引数関数であるからです。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let pair = (0.34, 1.2);;
+val pair : float * float = (0.34, 1.2)
+# average pair;;
+- : float = 0.77
+#+END_SRC
+
+#+BEGIN_QUOTE
+組を返す関数によって、複数の値を返す関数を定義することができます。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let sum_and_diff (x, y) = (x + y, x - y);;
+val sum_and_diff : int * int -> int * int = <fun>
+# sum_and_diff (2, 3);;
+- : int * int = (5, -1)
+#+END_SRC
+
+* 3.4.4 練習問題
+* 練習問題 3.6
+
+#+BEGIN_SRC ocaml
+# let geo_mean x y = sqrt (x *. y);;
+val geo_mean : float -> float -> float = <fun>
+# geo_mean 4. 1.;;
+- : float = 2.
+# let bmi name height weight =
+  let i = weight /. (height *. height) in
+  if i < 18.5 then Printf.sprintf "%sさんはやせ" name else
+    if i >= 18.5 && i < 25.0 then Printf.sprintf "%sさんは標準" name else
+      if i >= 25.0 && i < 30.0 then Printf.sprintf "%sさんは肥満" name else
+        Printf.sprintf "%sさんは高度肥満" name;;
+          val bmi : string -> float -> float -> string = <fun>
+# bmi "yuya" 1.75 75.0;;
+- : string = "yuyaさんは標準"
+# let sum_and_diff x y = (x + y, x - y);;
+val sum_and_diff : int -> int -> int * int = <fun>
+# sum_and_diff 2 3;;
+- : int * int = (5, -1)
+# let f (x, y) = let x' = (x + y) / 2 in
+              (x', (x - y) / 2);;
+  val f : int * int -> int * int = <fun>
+# f (sum_and_diff 2 3);;
+- : int * int = (2, 3)
+#+END_SRC
+
+* 3.5 再帰関数
+* 3.5.1 簡単な再帰関数
+#+BEGIN_SRC ocaml
+# let rec fact n =
+  if n = 1 then 1 else fact (n - 1) * n;;
+  val fact : int -> int = <fun>
+# fact 5;;
+- : int = 120
+# fact (-1);;
+Stack overflow during evaluation (looping recursion?).
+# let rec x = x * x + 1;;
+Characters 12-21:
+  let rec x = x * x + 1;;
+              ^^^^^^^^^
+Error: This kind of expression is not allowed as right-hand side of `let rec'
+#+END_SRC
+
+* 3.5.2 式の評価戦略
+#+BEGIN_SRC ocaml
+# let square x = x * x;;
+val square : int -> int = <fun>
+# #trace square;;
+square is now traced.
+# square 4;;
+square <-- 4
+square --> 16
+- : int = 16
+# #untrace square;;
+square is no longer traced.
+# #trace fact;;
+fact is now traced.
+# fact 4;;
+fact <-- 4
+fact <-- 3
+fact <-- 2
+fact <-- 1
+fact --> 1
+fact --> 2
+fact --> 6
+fact --> 24
+- : int = 24
+# #untrace fact;;
+fact is no longer traced.
+#+END_SRC
+
+* 3.5.3 より複雑な再帰
+
+#+BEGIN_SRC ocaml
+# let rec fib n = if n = 1 || n = 2 then 1 else fib (n - 1) + fib (n - 2);;
+val fib : int -> int = <fun>
+#+END_SRC
+
+#+BEGIN_QUOTE
+この定義は、Fnの計算にFn-1とFn-2の計算が必要で、しかもFn-1の計算には再びFn-2は必要になり...と同じ計算を何度も行うので効率的ではありません。
+フィボナッチ数はひとつ前とふたつ前がわかれば計算できますから、この非効率さは、nからFnとFn-1の組を計算するように改造することで改善することができます。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let rec fib_pair n =
+  if n = 1 then (1, 0)
+  else
+    let (i, j) = fib_pair (n - 1) in
+    (i + j, i);;
+        val fib_pair : int -> int * int = <fun>
+# let fib n = let (i, _) = fib_pair n in i;;
+val fib : int -> int = <fun>
+#+END_SRC
+
+#+BEGIN_QUOTE
+fib_pair (n - 1) は (Fn-1, Fn-2)なわけですから、定義より (Fn-1 + Fn-2, Fn-1) を返せばよいわけです。
+これは線形再帰定義になっていますから、Fnを計算するための再帰呼び出しは、n - 1回しか発生しません。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let rec even n = if n = 0 then true else odd (n - 1)
+  and odd n = if n = 0 then false else even (n - 1);;
+val even : int -> bool = <fun>
+val odd : int -> bool = <fun>
+# even 6;;
+- : bool = true
+# even 5;;
+- : bool = false
+# let rec pos n =
+    neg (n-1) +. 1.0 /. (float_of_int (4 * n + 1))
+  and neg n =
+    if n < 0 then 0.0
+    else pos n -. 1.0 /. (float_of_int (4 * n + 3));;
+val pos : int -> float = <fun>
+val neg : int -> float = <fun>
+# 4.0 *. pos 200;;
+- : float = 3.14408641529876087
+#+END_SRC
+
+* 3.5.4 反復的定義と末尾再帰
+
+#+BEGIN_SRC ocaml
+# let rec iterfact i res n =
+  if i = n then res * i
+  else iterfact (i + 1) (res * i) n;;
+    val iterfact : int -> int -> int -> int = <fun>
+# fact 4;;
+- : int = 6
+# let fact n = iterfact 1 1 n;;
+val fact : int -> int = <fun>
+# fact 4;;
+- : int = 24
+# let fact n = let rec fact' acc i n =
+                 if i = n then acc * i
+                 else fact' (acc * i) (i + 1) n in
+               fact' 1 1 n;;
+      val fact : int -> int = <fun>
+# fact 4;;
+- : int = 24
+# let fact n = let rec fact' acc n =
+                 if n = 1 then acc
+                 else fact' (acc * n) (n - 1) in
+               fact' 1 n;;
+      val fact : int -> int = <fun>
+# fact 4;;
+- : int = 24
+#+END_SRC
+
+* 3.5.5 練習問題
+
+#+BEGIN_SRC ocaml
+# let pow x n = let rec pow' acc n =
+                  if n = 1 then acc * x
+                  else pow' (acc * x) (n - 1) in
+                pow' 1 n;;
+      val pow : int -> int -> int = <fun>
+# pow 2 3;;
+- : int = 8
+# let pow x n = let rec pow' acc x n =
+                  if n = 0 then acc
+                  else if n = 1 then (acc * x)
+                  else pow' (acc * x) x (n - 1) in
+                let res = pow' 1 (x * x) (n / 2) in
+                if n mod 2 = 0 then res else res * x;;
+          val pow : int -> int -> int = <fun>
+# pow 2 4;;
+- : int = 16
+# pow 2 1;;
+- : int = 2
+# pow 2 0;;
+- : int = 1
+# let rec gcd x y = if y = 0 then x else gcd y (x mod y);;
+val gcd : int -> int -> int = <fun>
+# let rec comb n m = if n == m || m <= 0 then 1 else
+                       comb (n - 1) m + comb (n - 1) (m - 1);;
+  val comb : int -> int -> int = <fun>
+# comb 4 2;;
+- : int = 6
+# let iterfib n = let rec fib' a b n =
+                        if n = 0 then b
+                        else if n = 1 then a
+                        else fib' (a + b) a (n - 1) in
+                  fib' 1 0 n;;
+        val iterfib : int -> int = <fun>
+# iterfib 0;;
+- : int = 0
+# iterfib 1;;
+- : int = 1
+# iterfib 2;;
+- : int = 1
+# iterfib 3;;
+- : int = 2
+# iterfib 4;;
+- : int = 3
+# iterfib 5;;
+- : int = 5
+# iterfib 6;;
+- : int = 8
+# let max_ascii str = List.hd (List.sort (fun a b -> b - a)
+                                         (List.map String.length
+                                                   (String.split_on_char ' ' str)));;
+val max_ascii : string -> int = <fun>
+# max_ascii "Hello Worlds";;
+- : int = 6
+#+END_SRC
+
+x^2n = (x^2)^n
+x^2n+1 = x^2n * x^1
+       = (x^2)^n * x
+
+* 3.6 高階関数
+* 3.6.1 関数を引数とする関数
+#+BEGIN_SRC ocaml
+# let sum_of_square n = let rec r' acc n =
+                          if n = 0 then 0
+                          else if n = 1 then acc
+                          else r' (acc + (n * n)) (n - 1) in
+                        r' 1 n;;
+val sum_of_square : int -> int = <fun>
+# sum_of_square 2;;
+- : int = 5
+# sum_of_square 0;;
+- : int = 0
+# sum_of_square 1;;
+- : int = 1
+# let sum_of_cube n = let rec loop' acc n =
+                        if n = 0 then 0
+                        else if n = 1 then acc
+                        else loop' (acc + (n * n * n)) (n - 1) in
+                      loop' 1 n;;
+val sum_of_cube : int -> int = <fun>
+# sum_of_cube 0;;
+- : int = 0
+# sum_of_cube 1;;
+- : int = 1
+# sum_of_cube 3;;
+- : int = 36
+#+END_SRC
+
+* 3.6.2 匿名関数
+
+#+BEGIN_SRC ocaml
+# let sum_of f n = let rec loop acc n =
+                        if n = 0 then 0
+                        else if n = 1 then acc
+                        else loop (acc + f n) (n - 1) in
+                      loop 1 n;;
+        val sum_of : (int -> int) -> int -> int = <fun>
+# sum_of (fun n -> n * n * n) 3;;
+- : int = 36
+# let sum_of_cube n = let cube x = x * x * x in sum_of cube n;;
+val sum_of_cube : int -> int = <fun>
+# sum_of_cube 3;;
+- : int = 36
+#+END_SRC
+
+#+BEGIN_QUOTE
+let f (pattern) = (expression)
+は、実は
+let f = fun (pattern) -> (expression)
+の略記法です。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let sum_of_cube = fun n -> let cube x = x * x * x in sum_of cube n;;
+val sum_of_cube : int -> int = <fun>
+# sum_of_cube 3;;
+- : int = 36
+#+END_SRC
+
+#+BEGIN_QUOTE
+このことから、関数を構成すること(fun)と、それに名前をつけること(let)は必ずしも関連していない別の仕組みであることがわかりますね。
+#+END_QUOTE
+
+* 3.6.3 カリー化と関数を返す関数
+
+#+BEGIN_SRC ocaml
+# let concat s1 s2 = s1 ^ s2 ^ s1;;
+val concat : string -> string -> string = <fun>
+# let emphasize = concat "_";;
+val emphasize : string -> string = <fun>
+# emphasize "Objective Caml";;
+- : string = "_Objective Caml_"
+#+END_SRC
+
+#+BEGIN_QUOTE
+また、入れ子になった関数適用(((f x) y) z)も f x y zと、括弧を省略することができます。
+別の言い方をすると、関数適用式は左結合します(関数適用の結果を引数として別の関数に渡す場合にはf (g x)のように括弧が必要です)。
+
+関数型構築子->は、既に見たように、右結合し、 t1 -> t2 -> t3 -> t4 は t1 -> (t2 -> (t3 -> t4))を意味します。
+#+END_QUOTE
+
+* 3.6.4 中置・前置演算子の定義
+
+#+BEGIN_SRC ocaml
+# ~- 3;;
+- : int = -3
+# ~-3 + ~-5;;
+- : int = -8
+# abs -3;;
+Characters 0-3:
+  abs -3;;
+  ^^^
+Error: This expression has type int -> int
+       but an expression was expected of type int
+# abs ~-3;;
+- : int = 3
+# +;;
+Characters 1-3:
+  +;;
+   ^^
+Error: Syntax error
+# (+);;
+- : int -> int -> int = <fun>
+# (+) 1 2;;
+- : int = 3
+# ( * ) 3 3;;
+- : int = 9
+# let (^-^) x y = x * 2 + y * 3;;
+val ( ^-^ ) : int -> int -> int = <fun>
+# 1 ^-^ 2;;
+- : int = 8
+# let (!!) x =  x + 1;;
+val ( !! ) : int -> int = <fun>
+# !!3;;
+- : int = 4
+# max !! 3 ~- 4;;
+- : int = 4
+#+END_SRC
+
+* 3.6.6 練習問題
+#+BEGIN_SRC ocaml
+
+# let pow n x = let rec pow' acc n =
+                if n = 0 then acc
+                else pow' (acc * x) (n - 1) in
+                pow' 1 n;;
+val pow : int -> int -> int = <fun>
+# pow 3 2;;
+- : int = 8
+# let cube = pow 3;;
+val cube : int -> int = <fun>
+# cube 2;;
+- : int = 8
+# let pow x n = let rec pow' acc n =
+                if n = 0 then acc
+                else pow' (acc * x) (n - 1) in
+                pow' 1 n;;
+val pow : int -> int -> int = <fun>
+# pow 2 3;;
+- : int = 8
+# let cube = fun x -> pow x 3;;
+val cube : int -> int = <fun>
+# cube 2;;
+- : int = 8
+# let f x y z = x + y + z;;
+val f : int -> int -> int -> int = <fun>
+# let f g x: int = g (x: int);;
+val f : (int -> int) -> int -> int = <fun>
+# let f g: int = g 9 9;;
+val f : (int -> int -> int) -> int = <fun>
+#+END_SRC

@@ -1,0 +1,266 @@
+* 2 いろいろな式を評価してみよう
+* 2.1.3 型
+#+BEGIN_SRC ocaml
+# 7*-5
+;;
+  Characters 1-3:
+  7*-5
+   ^^
+Error: Unbound value *-
+# 7 * - 5;;
+- : int = -35
+# 2 + 3 - ;;
+Characters 8-10:
+  2 + 3 - ;;
+          ^^
+Error: Syntax error
+# 5 + "abc";;
+Characters 4-9:
+  5 + "abc";;
+      ^^^^^
+Error: This expression has type string but an expression was expected of type
+         int
+# 4 / 0;;
+Exception: Division_by_zero.
+#+END_SRC
+
+* 2.2.2 実数型: float
+#+BEGIN_SRC ocaml
+# 5. * 5. *. 3.14;;
+Characters 0-2:
+  5. * 5. *. 3.14;;
+  ^^
+Error: This expression has type float but an expression was expected of type
+         int
+
+# 5. *. 5. *. 3.14;;
+- : float = 78.5
+
+# 4 + int_of_float 84.2;;
+- : int = 88
+
+# float_of_int 1 +. 84.2;;
+- : float = 85.2
+
+# max_float;;
+- : float = 1.79769313486231571e+308
+# min_float;;
+- : float = 2.22507385850720138e-308
+# 1e350;;
+- : float = infinity
+# -3e40;;
+- : float = -3e+40
+# -3e400;;
+- : float = neg_infinity
+# 2.0 /. 0.0;;
+- : float = infinity
+# 0.0 /. 0.0;;
+- : float = nan
+# infinity +. neg_infinity;;
+- : float = nan
+
+#+END_SRC
+
+* 2.2.3 文字列型: char
+#+BEGIN_SRC ocaml
+# '\120';;
+- : char = 'x'
+# int_of_char 'x';;
+- : int = 120
+# '\97';;
+Characters 0-3:
+  '\97';;
+  ^^^
+Error: Illegal backslash escape in string or character (\9)
+# '\097';;
+- : char = 'a'
+
+# char_of_int 97;;
+- : char = 'a'
+
+#+END_SRC
+
+* 2.2.4 文字列型
+#+BEGIN_SRC ocaml
+
+# "Hello" ^ " " ^ "World";;
+- : string = "Hello World"
+
+# "Hello".[0];;
+- : char = 'H'
+
+#+END_SRC
+
+* 2.2.5 練習問題
+* 練習問題2.1
+#+BEGIN_SRC ocaml
+
+# - - 1;;
+- : int = 1
+
+# - 2+3;;
+- : int = 1
+
+
+# 9 / -4;;
+- : int = -2
+
+# +3 + 5;;
+- : int = 8
+
+#+END_SRC
+* 練習問題2.2
+#+BEGIN_SRC ocaml
+
+# float_of_int 3 +. 2.5;;
+- : float = 5.5
+
+# int_of_float 0.7;;
+- : int = 0
+
+# int_of_char 'a';;
+- : int = 97
+#   int_of_char 'A';;
+- : int = 65
+# char_of_int ((int_of_char 'A') + 20);;
+- : char = 'U'
+
+# 0xff;;
+- : int = 255
+# int_of_string "0xff";;
+- : int = 255
+# int_of_string "A";;
+Exception: Failure "int_of_string".
+
+# 5.0 ** 2.0;;
+- : float = 25.
+
+#+END_SRC
+* 練習問題2.3
+#+BEGIN_SRC ocaml
+
+# 8 *- 2;;
+Characters 2-4:
+  8 *- 2;;
+    ^^
+Error: Unbound value *-
+
+# 0xfg;;
+Characters 0-4:
+  0xfg;;
+  ^^^^
+Error: Unknown modifier 'g' for literal 0xfg
+# int_of_string "0xfg";;
+Exception: Failure "int_of_string".
+
+# int_of_float -0.7;;
+Characters 0-12:
+  int_of_float -0.7;;
+  ^^^^^^^^^^^^
+Error: This expression has type float -> int
+       but an expression was expected of type int
+# int_of_float (- 0.7);;
+- : int = 0
+
+#+END_SRC
+* 練習問題2.4
+#+BEGIN_SRC ocaml
+
+# float_of_int (int_of_float 5.0);;
+- : float = 5.
+
+# sqrt (float_of_int (3 * 3 + 4 * 4));;
+- : float = 5.
+
+#+END_SRC
+
+* 2.3 変数束縛による定義
+* 2.3.1 トップレベル変数束縛
+
+#+BEGIN_SRC ocaml
+# pi;;
+Characters 0-2:
+  pi;;
+  ^^
+Error: Unbound value pi
+# let pi = 3.14;;
+val pi : float = 3.14
+# pi;;
+- : float = 3.14
+# 2.0 *. 2.0 *. pi;;
+- : float = 12.56
+# let area_circle2 = 2.0 *. 2.0 *. pi;;
+val area_circle2 : float = 12.56
+
+#+END_SRC
+
+#+BEGIN_QUOTE
+OCamlにおける変数束縛は値そのものに名前をつけるもので、C言語のように、値の格納されるメモリ領域に名前をつけるものではありません。
+そのため、代入文のようなもので「格納された中身を書き換える」ようなことはできません。
+ただし、以下のoneのように同じ名前の変数を再定義することはできます。
+#+END_QUOTE
+
+
+#+BEGIN_SRC ocaml
+# let one = 1;;
+val one : int = 1
+# let two = one + one;;
+val two : int = 2
+# let one = "One";;
+val one : string = "One"
+# let three = one ^ one ^ one;;
+val three : string = "OneOneOne"
+#+END_SRC
+
+#+BEGIN_SRC ocaml
+
+# let pi : float = 3.14
+  let e = 2.71;;
+val pi : float = 3.14
+val e : float = 2.71
+
+#+END_SRC
+
+* 2.3.2 練習問題
+* 練習問題2.5
+#+BEGIN_SRC ocaml
+
+# let a_2' = 2;;
+val a_2' : int = 2
+
+# let ___ = 1;;
+val ___ : int = 1
+
+# let Cat = 2;;
+Characters 4-7:
+  let Cat = 2;;
+      ^^^
+Error: Unbound constructor Cat
+
+# let _'_'_ = 2;;
+val _'_'_ : int = 2
+
+
+# let 7eleven = "711";;
+Characters 4-11:
+  let 7eleven = "711";;
+      ^^^^^^^
+Error: Invalid literal 7eleven
+# let seven_eleven = "711";;
+val seven_eleven : string = "711"
+
+# 'ab2_ = "ab";;
+Characters 0-1:
+  'ab2_ = "ab";;
+  ^
+Error: Syntax error
+
+# let _ = "_";;
+- : string = "_"
+# _;;
+Characters 0-1:
+  _;;
+  ^
+Error: Syntax error: wildcard "_" not expected.
+
+#+END_SRC
