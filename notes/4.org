@@ -1,1 +1,258 @@
 * 4. 少ない手間で型付けをする：多相性と型推論
+* 4.1 多相的関数とパラメトリック多層
+#+BEGIN_SRC ocaml
+# let fst_int ((x, y): int * int) = x;;
+val fst_int : int * int -> int = <fun>
+# let fst_ifs ((x, y): (int * float) * string) = x;;
+val fst_ifs : (int * float) * string -> int * float = <fun>
+# fst_ifs ((1, 1.0), "a");;
+- : int * float = (1, 1.)
+# let fst (x, y) = x;;
+val fst : 'a * 'b -> 'a = <fun>
+# fst (2, 3);;
+- : int = 2
+# fst ((4, 5.2), "foo");;
+- : int * float = (4, 5.2)
+#+END_SRC
+
+#+BEGIN_QUOTE
+このように、fstは型1 * 型2 -> 型1という形のさまざまな型を持つ、つまり多相的な変数として使うことができます。
+多相性にはいろいろな形態があるのですが、関数の型情報の一部をパラメータ化することによって発生する多相性をパラメトリック多相と呼びます。
+パラメトリック多相による多相的関数は、型スキームの型変数をどう具体化しようともその振舞いは同じであるという特徴があります。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let id x = x;;
+val id : 'a -> 'a = <fun>
+# let apply f x = f x;;
+val apply : ('a -> 'b) -> 'a -> 'b = <fun>
+# abs;;
+- : int -> int = <fun>
+# apply abs (-5);;
+- : int = 5
+# apply abs "baz";;
+Characters 10-15:
+  apply abs "baz";;
+            ^^^^^
+Error: This expression has type string but an expression was expected of type
+         int
+#+END_SRC
+
+#+BEGIN_QUOTE
+オブジェクト指向言語では、親子クラス関係などの型上に定義された順序関係に基づいて、式が複数の型を持ちます。
+このような多相性を部分型多相といいます。
+多くの言語では、+という一つの記号が整数同士もしくは実数同士の足し算どちらでも使えます。
+これも多相性の一種ですが、値の取りうる型は型スキームによる統一的な表現ではなく、場当たり的に決まっているので、このような多相性はアドホック多相と呼ばれます。
+OCamlの比較演算子(=、 <など)は型スキームが割り当てられていますので、さまざまな型の値の比較に使うことができます。
+この意味では比較演算子はパラメトリック多相的ですが、比較する値の種類ごとに異なる方法で比較をしますから、動作はアドホック多相的です。
+これは、パラメトリック多相とアドホック多相のハイブリッド版とでもいえるでしょうか(= は、引数の値の種類によって場合分けを行わなければいけませんので、OCamlの言語の中では実現できない特別な関数です)。
+#+END_QUOTE
+
+* 4.2 型推論とlet多相
+** 4.2.1 方程式を使った型推論
+#+BEGIN_SRC ocaml
+# let id x = x;;
+val id : 'a -> 'a = <fun>
+# let id' = id id in (id' 3, id' 4.0);;
+Characters 31-34:
+  let id' = id id in (id' 3, id' 4.0);;
+                                 ^^^
+Error: This expression has type float but an expression was expected of type
+         int
+# let id' = id id;;
+val id' : '_a -> '_a = <fun>
+# (id' 3, id' 4.0);;
+Characters 12-15:
+  (id' 3, id' 4.0);;
+              ^^^
+Error: This expression has type float but an expression was expected of type
+         int
+# id' 3;;
+- : int = 3
+# id';;
+- : int -> int = <fun>
+# id' 4.0;;
+Characters 4-7:
+  id' 4.0;;
+      ^^^
+Error: This expression has type float but an expression was expected of type
+         int
+# let twice f x = f (f x);;
+val twice : ('a -> 'a) -> 'a -> 'a = <fun>
+# twice (fun x -> x + 1) 3;;
+- : int = 5
+# twice (fun x ->  "<" ^ x ^ ">") "abc";;
+- : string = "<<abc>>"
+# twice twice (fun x -> x + 1) 3;;
+- : int = 7
+# twice twice (fun x ->  "<" ^ x ^ ">") "abc";;
+- : string = "<<<<abc>>>>"
+# let fourtimes = twice twice in
+      (fourtimes (fun x -> x + 1) 3, fourtimes (fun x -> "<" ^ x ^ ">") "abc");;
+  Characters 94-95:
+        (fourtimes (fun x -> x + 1) 3, fourtimes (fun x -> "<" ^ x ^ ">") "abc");;
+                                                                 ^
+Error: This expression has type int but an expression was expected of type
+         string
+#+END_SRC
+
+** 4.2.2 多相的型推論
+
+#+BEGIN_QUOTE
+「定義の右辺の式がそのまま値であれば型変数を一般化してよい」 (十分条件)
+#+END_QUOTE
+
+#+BEGIN_QUOTE
+値として扱われるものは、関数の宣言、定数など、計算を必要としない式です。
+関数適用などの値に評価されるまでに計算を伴う式は値ではありません。
+= の右側が関数の場合には、全体をfun x -> ... xで囲んでやることによって値となりますので、避けることができます。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let id' x = id id x in (id' 3, id' 4.0);;
+- : int * float = (3, 4.)
+# let fourtimes x = twice twice x in
+      (fourtimes (fun x -> x + 1) 3, fourtimes (fun s -> "<" ^ s ^ ">") "abc");;
+  - : int * string = (7, "<<<<abc>>>>")
+#+END_SRC
+
+#+BEGIN_QUOTE
+id' x = ... は id' = fun x -> ... と同じ
+#+END_QUOTE
+
+* 4.3 Case Study：コンビネータ
+
+#+BEGIN_SRC ocaml
+# let ($) f g x = f (g x);;
+val ( $ ) : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b = <fun>
+# ((~-.) $ sqrt) 2.0;;
+- : float = -1.41421356237309515
+#+END_SRC
+
+#+BEGIN_QUOTE
+もっとも単純なコンビネータは恒等関数のidです(組合せ理論ではIコンビネータと呼ばれます。)
+id f は f と同じ関数を表現しますし、関数合成で組み合わせても何に効果も見らません(足し算におけろゼロ、かけ算における1のような存在です。)
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# (sqrt $ id) 3.0;;
+- : float = 1.73205080756887719
+# (id $ sqrt) 3.0;;
+- : float = 1.73205080756887719
+#+END_SRC
+
+#+BEGIN_QUOTE
+Kコンビネータは定数関数を構成するためのコンビネータで、K xはどんな引数に適用されてもxを返す関数になります。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let k x y = x;;
+val k : 'a -> 'b -> 'a = <fun>
+# let const17 = k 17 in const17 4.0;;
+- : int = 17
+# let const17 = k 17;;
+val const17 : '_a -> int = <fun>
+#+END_SRC
+
+#+BEGIN_QUOTE
+次のSコンビネータは関数合成のoを一般化したものです。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let s x y z = x z (y z);;
+val s : ('a -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'c = <fun>
+#+END_SRC
+
+#+BEGIN_QUOTE
+OCamlでfun式と関数適用の組合せ「のみ」で表現できる関数(fun x -> x, fun x y -> x (x y) など)はSとKを関数適用で組み合わせることですべて表現できることは知られています。
+例えばIコンビネータはS K Kとして表せます。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# s;;
+- : ('a -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'c = <fun>
+# k;;
+- : 'a -> 'b -> 'a = <fun>
+# s k;;
+- : ('_a -> '_b) -> '_a -> '_a = <fun>
+# s k k;;
+- : '_a -> '_a = <fun>
+# s k k 5;;
+- : int = 5
+#+END_SRC
+
+* 4.4 練習問題
+** 練習問題4.1
+#+BEGIN_SRC ocaml
+# let uncurry f (x, y) = f x y;;
+val uncurry : ('a -> 'b -> 'c) -> 'a * 'b -> 'c = <fun>
+# let avg = uncurry curried_avg;;
+val avg : float * float -> float = <fun>
+# avg (4.0, 5.3);;
+- : float = 4.65
+#+END_SRC
+** 練習問題 4.2
+#+BEGIN_SRC ocaml
+# let rec repeat f n x =
+  if n > 0 then repeat f (n - 1) (f x) else x;;
+  val repeat : ('a -> 'a) -> int -> 'a -> 'a = <fun>
+# let fib n =
+    let (fibn, _) = if n = 0 then (0, 0)
+                    else repeat (fun (i, j) -> (i + j, i)) (n - 1) (1, 0) in fibn;;
+    val fib : int -> int = <fun>
+#+END_SRC
+** 練習問題 4.3
+#+BEGIN_SRC ocaml
+# let id x = x;;
+val id : 'a -> 'a = <fun>
+# let ($) f g x = f (g x);;
+val ( $ ) : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b = <fun>
+# let rec funny f n =
+          if n = 0 then id
+          else if n mod 2 = 0 then funny (f $ f) (n / 2)
+          else funny (f $ f) (n / 2) $ f;;
+      val funny : ('a -> 'a) -> int -> 'a -> 'a = <fun>
+#+END_SRC
+** 練習問題 4.4
+#+BEGIN_SRC ocaml
+# let k x y = x;;
+val k : 'a -> 'b -> 'a = <fun>
+let s x y z = x z (y z);;
+val s : ('a -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'c = <fun>
+# s k k;;
+- : '_a -> '_a = <fun>
+# #trace k;;
+# #trace s;;
+# s k k 1;;
+s <-- <fun>
+s --> <fun>
+s* <-- <fun>
+s* --> <fun>
+s** <-- <poly>
+k <-- <poly>
+k --> <fun>
+k <-- <poly>
+k --> <fun>
+k* <-- <poly>
+k* --> <poly>
+s** --> <poly>
+- : int = 1
+#+END_SRC
+
+s x y z -> s k k 1 -> k 1 (k 1) -> k 1 (fun y -> 1) -> 1;;
+** 練習問題 4.5
+#+BEGIN_SRC ocaml
+# let twice f x = f (f x);;
+val twice : ('a -> 'a) -> 'a -> 'a = <fun>
+#+END_SRC
+twice f x -> f (f x)
+twice twice f x -> (twice (f (f x)) x) -> ((f (f x) (f (f x)))) x -> (f (f (f (f x)))) ??
+** 練習問題 4.6
+#+BEGIN_SRC ocaml
+# fun x y -> y;;
+- : 'a -> 'b -> 'b = <fun>
+# let s x y z = (x z) (y z);;
+val s : ('a -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'c = <fun>
+# let k x y = x;;
+val k : 'a -> 'b -> 'a = <fun>
+#+END_SRC

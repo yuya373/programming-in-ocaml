@@ -1,0 +1,225 @@
+* 再帰的多相的データ構造：リスト
+** 5.1 リストの構成法
+#+BEGIN_SRC ocaml
+# [3; 9; 0; -10];;
+- : int list = [3; 9; 0; -10]
+# let week = ["Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat"];;
+val week : string list = ["Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat"]
+# [1; 'a'];;
+Characters 4-7:
+  [1; 'a'];;
+      ^^^
+Error: This expression has type char but an expression was expected of type
+         int
+
+#+END_SRC
+
+#+BEGIN_QUOTE
+組の型は各要素の型を並べることで表現されますから、各要素の型は違ってもよいのですが、逆に大きさの違う組は同じ型に属しません(すなわち、組の大きさの情報が型に現れています)。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# ("Sun", 0);;
+- : string * int = ("Sun", 0)
+# ("Sun", 0, 1);;
+- : string * int * int = ("Sun", 0, 1)
+#+END_SRC
+
+#+BEGIN_SRC ocaml
+# (::);;
+Characters 4-6:
+  (::);;
+      ^^
+Error: Syntax error: operator expected.
+# (::)(1, [2]);;
+- : int list = [1; 2]
+# let p = (1, [2]) in (::) p;;
+Characters 25-26:
+  let p = (1, [2]) in (::) p;;
+                           ^
+Error: Syntax error: operator expected.
+# let cons = fun (x, y) -> (::)(x, y);;
+val cons : 'a * 'a list -> 'a list = <fun>
+# cons (1, [2]);;
+- : int list = [1; 2]
+# [1; 2] :: [];;
+- : int list list = [[1; 2]]
+# cons ([1; 2], []);;
+- : int list list = [[1; 2]]
+# [1; 2] :: [3; 4];;
+Characters 11-12:
+  [1; 2] :: [3; 4];;
+             ^
+Error: This expression has type int but an expression was expected of type
+         int list
+# [1; 2] :: [[3; 4]];;
+- : int list list = [[1; 2]; [3; 4]]
+# [1; 2; 3] :: 4;;
+Characters 13-14:
+  [1; 2; 3] :: 4;;
+               ^
+Error: This expression has type int but an expression was expected of type
+         int list list
+# [1; 2; 3] :: [[4]];;
+- : int list list = [[1; 2; 3]; [4]]
+#+END_SRC
+** 5.2 リストの要素へのアクセス：match式とリストパターン
+#+BEGIN_SRC ocaml
+# let sum_list3 [x; y; z;] = x + y + z;;
+Characters 14-36:
+  let sum_list3 [x; y; z;] = x + y + z;;
+                ^^^^^^^^^^^^^^^^^^^^^^
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched:
+(_::_::_::_::_|_::_::[]|_::[]|[])
+val sum_list3 : int list -> int = <fun>
+# sum_list3 [];;
+Exception: Match_failure ("//toplevel//", 10, -91).
+# sum_list3 [1;2;3];;
+- : int = 6
+# sum_list3 [1];;
+Exception: Match_failure ("//toplevel//", 10, -91).
+# let rec sum_list l =
+  match l with
+    [] -> 0 |
+    n :: rest -> n + (sum_list rest);;
+      val sum_list : int list -> int = <fun>
+# sum_list [1; 2; 3];;
+- : int = 6
+# let rec sum_list = function
+    [] -> 0 |
+    n :: rest -> n + (sum_list rest);;
+    val sum_list : int list -> int = <fun>
+# let rec length = function
+        [] -> 0 |
+        _ :: rest -> 1 + (length rest);;
+    val length : 'a list -> int = <fun>
+# let rec append l1 l2 =
+  match l1 with
+    [] -> l2 |
+    h :: l -> h :: (append l l2);;
+      val append : 'a list -> 'a list -> 'a list = <fun>
+# append [1; 2; 3] [4; 5; 6];;
+- : int list = [1; 2; 3; 4; 5; 6]
+# [1; 2; 3] @ [4; 5; 6];;
+- : int list = [1; 2; 3; 4; 5; 6]
+# let rec reverse l =
+  match l with
+    [] -> [] |
+    h :: t -> (reverse t) @ [h];;
+      val reverse : 'a list -> 'a list = <fun>
+# reverse [1; 2; 3];;
+- : int list = [3; 2; 1]
+# let reverse l =
+  let rec reverse' list acc =
+    match list with
+      [] -> acc |
+      h :: t -> reverse' t (h :: acc) in
+  reverse' l [];;
+          val reverse : 'a list -> 'a list = <fun>
+# reverse [1; 2; 3];;
+- : int list = [3; 2; 1]
+# let rec map f = function
+    [] -> [] |
+    h :: t -> f h :: map f t;;
+    val map : ('a -> 'b) -> 'a list -> 'b list = <fun>
+# map (fun x -> x + 1) [1; 2; 3];;
+- : int list = [2; 3; 4]
+# let rec forall p = function
+    [] -> true |
+    h :: t -> if p h then forall p t else false;;
+    val forall : ('a -> bool) -> 'a list -> bool = <fun>
+# forall (fun x -> x > 0) [1; 2; 3];;
+- : bool = true
+# forall (fun x -> x > 0) [];;
+- : bool = true
+# forall (fun x -> x < 0) [1; 2; 3];;
+- : bool = false
+# let rec exists p = function
+    [] -> false |
+    h :: t -> if p h then true else exists p t;;
+    val exists : ('a -> bool) -> 'a list -> bool = <fun>
+# exists (fun x -> x > 2) [1; 2; 3];;
+- : bool = true
+# exists (fun x -> x > 4) [1; 2; 3];;
+- : bool = false
+# exists (fun x -> x > 0) [];;
+- : bool = false
+#+END_SRC
+
+#+BEGIN_QUOTE
+このような「リストの全要素を使って順に計算する」計算構造を畳み込み(fold)といいます。
+#+END_QUOTE
+
+#+BEGIN_SRC ocaml
+# let rec fold_right f l e =
+  match l with
+    [] -> e |
+    h :: t -> (f h (fold_right f t e));;
+      val fold_right : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b = <fun>
+# fold_right (fun x y -> x + y) [3; 5; 7] 0;;
+- : int = 15
+# let rec fold_left f e l =
+  match l with
+    [] -> e |
+    h :: t -> fold_left f (f e h) t;;
+      val fold_left : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a = <fun>
+# fold_left (fun x y -> y :: x) [] [1; 2; 3];;
+- : int list = [3; 2; 1]
+# let length l = fold_right (fun _ n -> n + 1) l 0;;
+val length : 'a list -> int = <fun>
+# length [1; 2; 3];;
+- : int = 3
+# length [];;
+- : int = 0
+# let rec nth n l =
+  match n with
+    1 -> let h :: _ = l in h |
+    _ -> let _ :: t = l in nth (n - 1) t;;
+      Characters 48-54:
+      1 -> let h :: _ = l in h |
+               ^^^^^^
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched:
+[]
+Characters 79-85:
+      _ -> let _ :: t = l in nth (n - 1) t;;
+               ^^^^^^
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched:
+[]
+val nth : int -> 'a list -> 'a = <fun>
+# nth 4 [1; 2; 3; 4];;
+- : int = 4
+# nth 1 [1; 2; 3; 4];;
+- : int = 1
+# let rec nth n l =
+  match (n, l) with
+    (1, h :: _) -> h |
+    (_, _ :: t) -> nth (n - 1) t;;
+      Characters 21-95:
+  ..match (n, l) with
+      (1, h :: _) -> h |
+      (_, _ :: t) -> nth (n - 1) t..
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched:
+(_, [])
+val nth : int -> 'a list -> 'a = <fun>
+# nth 4 [1; 2; 3; 4];;
+- : int = 4
+# nth 1 [1; 2; 3; 4];;
+- : int = 1
+# let rec nth n l =
+  match (n, l) with
+    (1, h :: _) -> h |
+    (n', _ :: t) when n' > 0 -> nth (n - 1) t;;
+      Characters 21-107:
+  ..match (n, l) with
+      (1, h :: _) -> h |
+      (n', _ :: t) when n' > 0 -> nth (n - 1) t..
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched:
+((1, [])|(0, _))
+(However, some guarded clause may match this value.)
+val nth : int -> 'a list -> 'a = <fun>
+#+END_SRC
